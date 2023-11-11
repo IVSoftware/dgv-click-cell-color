@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            dataGridView = new DataGridView();
+            dataGridView = new DataGridViewEx();
             ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
             SuspendLayout();
             // 
@@ -62,6 +62,6 @@
 
         #endregion
 
-        private DataGridView dataGridView;
+        private DataGridViewEx dataGridView;
     }
 }

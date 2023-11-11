@@ -11,48 +11,61 @@ namespace dgv_click_cell_color
             base.OnLoad(e);
             dataGridView.DataSource = Recordset;
             dataGridView.Columns[nameof(Record.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            Recordset.ListChanged += onRecordsetChanged;
-            dataGridView.CellClick += onCellClick;
+            dataGridView.Columns[nameof(Record.Color)].ReadOnly = true;
+            dataGridView.CellMouseDown += onCellMouseDown;
+            dataGridView.CellMouseUp += onCellMouseUp;
             for (int i = 0; i < 3; i++)
             {
                 Recordset.Add(new Record());
+                var cell = dataGridView[dataGridView.Columns[nameof(Color)].Index, i];
+                Recordset[i].Color =
+                    cell.Style.BackColor =
+                    Color.LightGreen;
             }
             unselectCurrentCell();
         }
 
         BindingList<Record> Recordset = new BindingList<Record>();
 
-        private void onCellClick(object? sender, DataGridViewCellEventArgs e)
+        private void onCellMouseDown(object? sender, DataGridViewCellMouseEventArgs e)
         {
             if(dataGridView.Columns[nameof(Color)].Index == e.ColumnIndex &&  e.RowIndex != -1)
             {
-                var record = Recordset[e.RowIndex];
-                switch (record.Color.Name) 
+                Color newColor;
+                var cell = dataGridView[e.ColumnIndex, e.RowIndex];
+                switch (cell.Style.BackColor.Name) 
                 {
-                    case nameof(Color.LightGreen):
-                        record.Color = Color.LightSalmon;
-                        break;
-                    case nameof(Color.LightSalmon):
-                        record.Color = Color.LightBlue;
-                        break;
+                    case nameof(Color.LightGreen): newColor = Color.LightSalmon; break;
+                    case nameof(Color.LightSalmon): newColor = Color.LightBlue; break;
                     case nameof(Color.LightBlue):
-                        record.Color = Color.LightGreen;
+                    default:
+                        newColor = Color.LightGreen;
                         break;
+
                 }
-                unselectCurrentCell();
+                Recordset[e.RowIndex].Color = 
+                    cell.Style.BackColor = newColor;
+
+                const int OFFSET = 40;
+                cell.Style.SelectionBackColor =
+                    Color.FromArgb(
+                        Math.Min(255, newColor.R + OFFSET),
+                        Math.Min(255, newColor.G + OFFSET),
+                        Math.Min(255, newColor.B + OFFSET)
+                );
+                dataGridView.Refresh();
             }
         }
 
-        private void onRecordsetChanged(object? sender, ListChangedEventArgs e)
+        private void onCellMouseUp(object? sender, DataGridViewCellMouseEventArgs e)
         {
-            DataGridViewCell cell;
-            switch (e.ListChangedType)
+            if (dataGridView.Columns[nameof(Color)].Index == e.ColumnIndex && e.RowIndex != -1)
             {
-                case ListChangedType.ItemAdded:
-                case ListChangedType.ItemChanged:
-                    cell = dataGridView[dataGridView.Columns[nameof(Color)].Index, e.NewIndex];
-                    cell.Style.BackColor = Recordset[e.NewIndex].Color;
-                    break;
+                var cell = dataGridView[e.ColumnIndex, e.RowIndex];
+
+                cell.Style.SelectionBackColor =
+                    cell.Style.BackColor;
+                dataGridView.Refresh();
             }
         }
 
@@ -62,36 +75,23 @@ namespace dgv_click_cell_color
         }
     }
 
+    class DataGridViewEx : DataGridView
+    {
+        //protected override void SetSelectedCellCore(int columnIndex, int rowIndex, bool selected)
+        //{
+        //    base
+        //        .SetSelectedCellCore(
+        //            columnIndex, 
+        //            rowIndex, 
+        //            selected && !(Columns[nameof(Record.Color)].Index == columnIndex));
+        //}
+    }
 
-
-    class Record : INotifyPropertyChanged
+    class Record
     {
         static int _id = 0;
-
-        /// <summary>
-        /// Make a bindable property e.g. "Color"
-        /// </summary>
-        public Color Color
-        {
-            get => _color;
-            set
-            {
-                if (!Equals(_color, value))
-                {
-                    _color = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-        Color _color = Color.LightGreen;
+        public Color Color { get; set; }
 
         public string Name { get; set; } = $"Record {_id++}";
-
-        private void OnPropertyChanged([CallerMemberName]string caller = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(caller));
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }
